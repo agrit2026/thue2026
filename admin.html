@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Admin - Quản Lý Thuế</title>
+    <link rel="stylesheet" href="admin-style.css">
+</head>
+<body>
+
+<div id="adminLoginWrapper" class="admin-login-wrapper">
+    <div class="admin-login-box">
+        <h2>🔑 ĐĂNG NHẬP ADMIN</h2>
+        <p class="subtitle">Hệ thống quản trị cấp cao</p>
+        <div class="form-group">
+            <label for="adminUser">Tên đăng nhập:</label>
+            <input type="text" id="adminUser" placeholder="Nhập tài khoản admin...">
+        </div>
+        <div class="form-group">
+            <label for="adminPass">Mật khẩu:</label>
+            <input type="password" id="adminPass" placeholder="Nhập mật khẩu admin...">
+        </div>
+        <button onclick="loginAdmin()">Đăng nhập hệ thống</button>
+    </div>
+</div>
+
+<div id="adminMainSection" class="admin-container hidden">
+    <header class="admin-header">
+        <h2>🛡️ TRANG QUẢN TRỊ VIÊN (ADMIN)</h2>
+        <div class="admin-info">
+            <span>Xin chào, <strong style="color: #f59e0b;">Admin (0000)</strong></span>
+            <button onclick="logoutAdmin()" class="btn-logout">Đăng xuất</button>
+        </div>
+    </header>
+
+    <div class="admin-grid">
+        <section class="admin-card">
+            <h3>👥 Cấp Mới & Đổi Mật Khẩu User</h3>
+            <p class="note">* Nếu điền đúng Tài khoản (ID) đã có, hệ thống sẽ tự động cập nhật (Đổi mật khẩu/Branch/Tên hiển thị).</p>
+            
+            <div class="form-group">
+                <label for="uNodeId">Tài khoản (ID đăng nhập - Viết liền, ví dụ: dha, hvl):</label>
+                <input type="text" id="uNodeId" placeholder="Ví dụ: dha">
+            </div>
+            <div class="form-group">
+                <label for="uUsername">Tên hiển thị (username):</label>
+                <input type="text" id="uUsername" placeholder="Ví dụ: Đông Hà">
+            </div>
+            <div class="form-group">
+                <label for="uPassword">Mật khẩu (password):</label>
+                <input type="text" id="uPassword" placeholder="Nhập mật khẩu...">
+            </div>
+            <div class="form-group">
+                <label for="uBranch">Mã địa bàn (Branch):</label>
+                <input type="text" id="uBranch" placeholder="Ví dụ: 3902">
+            </div>
+            <div class="action-buttons">
+                <button onclick="saveUser()" class="btn-primary">💾 Lưu thông tin (Tạo mới/Cập nhật)</button>
+                <button onclick="deleteUser()" class="btn-danger">🗑️ Xóa tài khoản này</button>
+            </div>
+        </section>
+
+        <section class="admin-card">
+            <h3>📊 Trình Truy Vấn Dữ Liệu Báo Cáo</h3>
+            <p class="note">Hệ thống hỗ trợ cú pháp giả lập SQL Server cơ bản (Không phân biệt hoa thường):</p>
+            <ul class="sql-examples">
+                <li><code>SELECT * FROM users</code> (Xem danh sách cán bộ)</li>
+                <li><code>SELECT * FROM QRCodeTax</code> (Xem toàn bộ danh sách nộp thuế)</li>
+            </ul>
+            <div class="form-group">
+                <textarea id="sqlQueryInput" rows="4" placeholder="Nhập lệnh truy vấn tại đây... Ví dụ: SELECT * FROM users"></textarea>
+            </div>
+            <button onclick="executeSqlQuery()" class="btn-success">⚡ Chạy lệnh truy vấn</button>
+        </section>
+    </div>
+
+    <section class="admin-card results-section">
+        <h3>🔍 Kết quả truy vấn dữ liệu</h3>
+        <div id="sqlResultsWrapper" class="table-responsive">
+            <p class="placeholder-text">Chưa có lệnh nào được thực thi. Kết quả sẽ hiển thị tại đây.</p>
+        </div>
+    </section>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+<script src="admin-script.js"></script>
+</body>
+</html>

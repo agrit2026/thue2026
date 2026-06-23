@@ -94,87 +94,91 @@ function deleteUser() {
 }
 
 // BỘ GIẢ LẬP ĐỌC LỆNH SQL SERVER SANG CƠ SỞ DỮ LIỆU NO-SQL (FIREBASE)
+// HÀM XỬ LÝ TRUY VẤN SQL BẤT KỲ (HỖ TRỢ ĐẦY ĐỦ SELECT, WHERE, GROUP BY, SUM, COUNT...)
 function executeSqlQuery() {
     const sqlText = document.getElementById('sqlQueryInput').value.trim();
     const resultContainer = document.getElementById('sqlResultsWrapper');
     
     if (!sqlText) {
-        alert("Vui lòng nhập lệnh truy vấn!");
+        alert("Vui lòng nhập lệnh truy vấn SQL!");
         return;
     }
 
-    // Biến đổi chuỗi viết thường để bóc tách thông tin
-    const cleanSql = sqlText.toLowerCase().replace(/\s+/g, ' ');
-
-    if (!cleanSql.startsWith("select * from")) {
-        alert("Trình giả lập hiện tại chỉ hỗ trợ cú pháp: SELECT * FROM [Tên_Bảng]");
+    // 1. Phân tích lệnh để tìm xem admin đang muốn lấy dữ liệu từ bảng (node) nào trên Firebase
+    // Ví dụ: "SELECT * FROM QRCodeTax WHERE ..." -> Lấy ra chữ "QRCodeTax"
+    const match = sqlText.match(/from\s+([a-zA-Z0-9_]+)/i);
+    if (!match) {
+        alert("Không tìm thấy tên bảng hợp lệ sau từ khóa 'FROM'. Ví dụ chuẩn: SELECT * FROM QRCodeTax");
         return;
     }
+    const firebaseNodeName = match[1]; // Tên node trên Firebase (users hoặc QRCodeTax)
 
-    // Trích xuất tên bảng (node trong Firebase)
-    const tableParts = sqlText.split(/from/i);
-    if(tableParts.length < 2) {
-        alert("Lệnh SQL không đúng định dạng!");
-        return;
-    }
-    const tableName = tableParts[1].trim(); // Bảng mong muốn: users hoặc QRCodeTax
+    resultContainer.innerHTML = "<p class='placeholder-text' style='color:#38bdf8;'>Đang tải dữ liệu từ Firebase và thực thi SQL...</p>";
 
-    resultContainer.innerHTML = "<p class='placeholder-text' style='color:#38bdf8;'>Đang thực thi lệnh và kết nối database...</p>";
-
-    // Truy vấn dữ liệu một lần từ Firebase tương ứng với tên node bảng
-    db.ref(tableName).once('value').then((snapshot) => {
-        const data = snapshot.val();
-        if (!data) {
-            resultContainer.innerHTML = "<p class='placeholder-text'>Bảng không tồn tại hoặc rỗng.</p>";
+    // 2. Đọc toàn bộ dữ liệu gốc từ Firebase về
+    db.ref(firebaseNodeName).once('value').then((snapshot) => {
+        const rawData = snapshot.val();
+        if (!rawData) {
+            resultContainer.innerHTML = "<p class='placeholder-text'>Bảng '" + firebaseNodeName + "' không tồn tại hoặc không có dữ liệu.</p>";
             return;
         }
 
-        // Chuyển đổi dữ liệu JSON từ Firebase sang mảng đối tượng hiển thị
-        let recordsArray = [];
-        if (Array.isArray(data)) {
-            recordsArray = data.filter(Boolean);
-        } else {
-            for (let id in data) {
-                let item = data[id];
-                if (typeof item === 'object' && item !== null) {
-                    if (!item.ID) item.ID = id; // Gắn ID nếu là bản ghi dạng key-object
-                    recordsArray.push(item);
-                }
+        // Chuyển đổi cấu trúc Firebase (Object) thành một mảng phẳng (Array) để nạp vào công cụ chạy SQL
+        let dataArray = [];
+        for (let id in rawData) {
+            let item = rawData[id];
+            if (typeof item === 'object' && item !== null) {
+                if (!item.id_key) item.id_key = id; // Gắn thêm khóa ID gốc nếu cần
+                dataArray.push(item);
             }
         }
 
-        if (recordsArray.length === 0) {
-            resultContainer.innerHTML = "<p class='placeholder-text'>Không có bản ghi nào.</p>";
-            return;
+        try {
+            // 3. SỬ DỤNG ALASQL ĐỂ CHẠY CÂU LỆNH SQL BẤT KỲ TRÊN MẢNG DỮ LIỆU VỪA TẢI VỀ
+            // Biến tên bảng trong câu lệnh SQL thành mảng dữ liệu dataArray
+            let sqlToRun = sqlText.replace(new RegExp("from\\s+" + firebaseNodeName, "i"), "FROM ?");
+            
+            // Thực thi câu lệnh SQL
+            let queryResults = alasql(sqlToRun, [dataArray]);
+
+            if (!queryResults || queryResults.length === 0) {
+                resultContainer.innerHTML = "<p class='placeholder-text'>Lệnh thực thi thành công nhưng không trả về dòng dữ liệu nào phù hợp.</p>";
+                return;
+            }
+
+            // 4. HIỂN THỊ KẾT QUẢ RA BẢNG HTML (Tự động nhận diện cột dựa theo kết quả câu lệnh SQL)
+            let columns = Object.keys(queryResults[0]);
+            
+            let htmlTable = "<table><thead><tr>";
+            columns.forEach(col => {
+                htmlTable += "<th>" + col + "</th>";
+            });
+            htmlTable += "</tr></thead><tbody>";
+
+            queryResults.forEach(row => {
+                htmlTable += "<tr>";
+                columns.forEach(col => {
+                    let val = row[col];
+                    if (val === undefined || val === null) val = "";
+                    if (typeof val === 'object') val = JSON.stringify(val);
+                    // Định dạng số tiền nếu là các cột số tiền để dễ nhìn báo cáo
+                    if (typeof val === 'number' && (col.toLowerCase().includes('tien') || col.toLowerCase().includes('total'))) {
+                        val = val.toLocaleString('vi-VN') + " đ";
+                    }
+                    htmlTable += "<td>" + val + "</td>";
+                });
+                htmlTable += "</tr>";
+            });
+            htmlTable += "</tbody></table>";
+
+            // Hiển thị số lượng dòng kết quả lên phía trên bảng
+            resultContainer.innerHTML = "<p style='color:#10b981; font-weight:bold; margin-bottom:10px;'>📊 Tìm thấy " + queryResults.length + " dòng kết quả:</p>" + htmlTable;
+
+        } catch (sqlError) {
+            resultContainer.innerHTML = "<p class='placeholder-text' style='color:#ef4444;'>❌ Lỗi cú pháp SQL Server: " + sqlError.message + "</p>";
         }
 
-        // Tạo tiêu đề cột động dựa trên các Key dữ liệu có trong bản ghi
-        let keys = new Set();
-        recordsArray.forEach(rec => Object.keys(rec).forEach(k => keys.add(k)));
-        let columns = Array.from(keys);
-
-        // Sinh bảng HTML
-        let htmlTable = "<table><thead><tr>";
-        columns.forEach(col => {
-            htmlTable += "<th>" + col + "</th>";
-        });
-        htmlTable += "</tr></thead><tbody>";
-
-        recordsArray.forEach(rec => {
-            htmlTable += "<tr>";
-            columns.forEach(col => {
-                let val = rec[col];
-                if (val === undefined || val === null) val = "";
-                if (typeof val === 'object') val = JSON.stringify(val);
-                htmlTable += "<td>" + val + "</td>";
-            });
-            htmlTable += "</tr>";
-        });
-        htmlTable += "</tbody></table>";
-
-        resultContainer.innerHTML = htmlTable;
-
     }).catch(err => {
-        resultContainer.innerHTML = "<p class='placeholder-text' style='color:#ef4444;'>Lỗi thực thi: " + err.message + "</p>";
+        resultContainer.innerHTML = "<p class='placeholder-text' style='color:#ef4444;'>❌ Lỗi kết nối Firebase: " + err.message + "</p>";
     });
 }

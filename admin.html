@@ -8,7 +8,7 @@
 </head>
 <body>
 
-<div id="adminLoginWrapper" class="admin-login-wrapper">
+<div id="adminLoginWrapper" class="admin-login-wrapper" style="display: none;">
     <div class="admin-login-box">
         <h2>🔑 ĐĂNG NHẬP ADMIN</h2>
         <p class="subtitle">Hệ thống quản trị cấp cao</p>
@@ -24,7 +24,7 @@
     </div>
 </div>
 
-<div id="adminMainSection" class="admin-container hidden">
+<div id="adminMainSection" class="admin-container" style="display: none;">
     <header class="admin-header">
         <h2>🛡️ TRANG QUẢN TRỊ VIÊN (ADMIN)</h2>
         <div class="admin-info">
@@ -55,20 +55,20 @@
                 <input type="text" id="uBranch" placeholder="Ví dụ: 3902">
             </div>
             <div class="action-buttons">
-                <button onclick="saveUser()" class="btn-primary">💾 Lưu thông tin (Tạo mới/Cập nhật)</button>
-                <button onclick="deleteUser()" class="btn-danger">🗑️ Xóa tài khoản này</button>
+                <button onclick="saveUser()" class="btn-primary">💾 Lưu thông tin</button>
+                <button onclick="deleteUser()" class="btn-danger">🗑️ Xóa</button>
             </div>
         </section>
 
         <section class="admin-card">
             <h3>📊 Trình Truy Vấn Dữ Liệu Báo Cáo</h3>
-            <p class="note">Hệ thống hỗ trợ cú pháp giả lập SQL Server cơ bản (Không phân biệt hoa thường):</p>
+            <p class="note">Hỗ trợ đầy đủ cú pháp SQL Server thuần túy (SELECT, WHERE, GROUP BY, SUM, COUNT...):</p>
             <ul class="sql-examples">
-                <li><code>SELECT * FROM users</code> (Xem danh sách cán bộ)</li>
-                <li><code>SELECT * FROM QRCodeTax</code> (Xem toàn bộ danh sách nộp thuế)</li>
+                <li><code>SELECT * FROM users</code></li>
+                <li><code>SELECT PhuongXa, SUM(SoTienThuThue) FROM QRCodeTax GROUP BY PhuongXa</code></li>
             </ul>
             <div class="form-group">
-                <textarea id="sqlQueryInput" rows="4" placeholder="Nhập lệnh truy vấn tại đây... Ví dụ: SELECT * FROM users"></textarea>
+                <textarea id="sqlQueryInput" rows="4" placeholder="Nhập lệnh truy vấn tại đây..."></textarea>
             </div>
             <button onclick="executeSqlQuery()" class="btn-success">⚡ Chạy lệnh truy vấn</button>
         </section>
@@ -81,10 +81,10 @@
         </div>
     </section>
 </div>
+
 <script src="https://cdn.jsdelivr.net/npm/alasql@4"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 <script src="admin-script.js"></script>
-    
 </body>
 </html>
